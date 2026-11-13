@@ -24,3 +24,9 @@ The chassis was designed around:
 - M3 × 30 mm mounting hardware.
 
 Electronics, motors, wheels, batteries, and fasteners are not included in the model files.
+
+## Complete robot project
+
+The complete robot build documentation, wiring details, Arduino firmware, and custom Android controller app are available on GitHub. The app connects over BLE to the HC-06-compatible FFE1 UART module and provides landscape controls for driving, strafing, rotation, speed selection, and ultrasonic auto-stop.
+
+[View the complete Mecanum Robot project on GitHub](https://github.com/Fomicha/mecanum-robot)
