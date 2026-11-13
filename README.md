@@ -1,8 +1,8 @@
 # Mecanum Robot
 
-Чотириколісний робот на Arduino Uno з mecanum-колесами, BLE-керуванням з Android та ультразвуковим датчиком перешкод.
+A four-wheel Arduino Uno robot with mecanum wheels, BLE control from a custom Android application, and an ultrasonic obstacle sensor.
 
-## Структура репозиторію
+## Repository structure
 
 ```text
 mecanum-robot/
@@ -19,78 +19,79 @@ mecanum-robot/
     └── MAKERWORLD_MODEL_LISTING.md
 ```
 
-- `arduino/mecanum_robot` — прошивка Arduino Uno.
-- `android` — Android-застосунок Mecanum Controller.
-- `android/IMPROVEMENT_PLAN.md` — список запланованих покращень.
-- `makerworld/MAKERWORLD_MODEL_LISTING.md` — короткий опис 3D-моделі для MakerWorld.
+- `arduino/mecanum_robot` contains the Arduino Uno firmware.
+- `android` contains the Mecanum Controller Android application.
+- `android/IMPROVEMENT_PLAN.md` contains planned application improvements.
+- `makerworld/MAKERWORLD_MODEL_LISTING.md` contains the short MakerWorld description for the 3D-printed chassis.
 
-## Апаратна частина
+## Hardware
 
-Основні компоненти:
+Main components:
 
 - Arduino Uno.
-- Motor Shield v2 на PCA9685 + два TB6612 (Adafruit Motor Shield v2-сумісний).
-- 4 жовті TT DC-мотори.
-- 4 mecanum-колеса.
-- HC-06-сумісний Bluetooth-модуль. Конкретний модуль працює як BLE UART з характеристикою FFE1, а не як звичайний Classic Bluetooth SPP.
-- HC-SR04 для вимірювання відстані попереду.
-- Окреме живлення Arduino та моторів.
+- Motor Shield V2 based on a PCA9685 and two TB6612 drivers, compatible with the Adafruit Motor Shield V2.
+- Four yellow TT DC gear motors.
+- Four 50 mm mecanum wheels.
+- HC-06-compatible Bluetooth module. This particular module operates as a BLE UART using FFE1/FFE2 characteristics rather than standard Classic Bluetooth SPP.
+- HC-SR04 ultrasonic distance sensor.
+- Separate logic and motor power supplies.
+- Arduino Prototype Shield for the BLE module, sensor wiring, and supporting components.
 
-## Розташування моторів
+## Motor layout
 
-Вид згори, перед робота зверху:
+Top view, with the front of the robot at the top:
 
 ```text
-               FRONT
+                 FRONT
 
-       FL (M1)          FR (M2)
-          \                /
-           \              /
+       FL (M1)             FR (M2)
+          \                   /
+           \                 /
 
-           /              \
-          /                \
-       BL (M4)          BR (M3)
+           /                 \
+          /                   \
+       BL (M4)             BR (M3)
 
-                BACK
+                  BACK
 ```
 
-Робоче підключення моторів до shield:
+Working motor connections:
 
-| Shield | Позиція | Проводи в поточній збірці |
+| Shield output | Position | Wire order in the current build |
 |---|---|---|
 | M1 | Front Left (FL) | black / red |
 | M2 | Front Right (FR) | red / black |
 | M3 | Back Right (BR) | black / red |
 | M4 | Back Left (BL) | red / black |
 
-Колеса мають утворювати дзеркальний X-патерн роликів. Якщо рух уперед і повороти працюють, але strafe лише обертає робота на місці, спочатку треба перевірити орієнтацію самих коліс.
+The wheel rollers must form a mirrored X pattern. If forward movement and rotation work but strafe causes the robot to rotate or remain in place, check the wheel positions first.
 
-## Підключення HC-06
+## HC-06-compatible BLE module
 
-Прошивка використовує `SoftwareSerial bluetooth(10, 11)`, тобто D10 є RX Arduino, а D11 — TX Arduino.
+The firmware uses `SoftwareSerial bluetooth(10, 11)`. Arduino D10 is RX and D11 is TX.
 
-| HC-06 | Arduino Uno | Примітка |
+| BLE module | Arduino Uno | Notes |
 |---|---|---|
-| VCC | 5V | На платі модуля вказано живлення 3.6–6 V |
-| GND | GND | Спільна земля |
-| TXD | D10 | 3.3 V сигнал модуля безпечно читається Arduino |
-| RXD | D11 через дільник | Не подавати 5 V напряму на RXD |
+| VCC | 5V | The module board is marked for 3.6-6 V power |
+| GND | GND | Common ground |
+| TXD | D10 | The Arduino can safely read the module's 3.3 V signal |
+| RXD | D11 through a voltage divider | Do not apply the Arduino's 5 V TX signal directly |
 
-Поточний дільник напруги:
+Current voltage divider:
 
 ```text
-Arduino D11 ---- [1 kOhm] ----+---- HC-06 RXD
+Arduino D11 ---- [1 kOhm] ----+---- BLE RXD
                               |
                          [2.2 kOhm]
                               |
 Arduino GND ------------------+
 ```
 
-Це дає приблизно 3.44 V на RXD. Верхній резистор між D11 та RXD має 1 kOhm, нижній між RXD та GND — 2.2 kOhm.
+This produces approximately 3.44 V at RXD. The upper resistor between D11 and RXD is 1 kOhm; the lower resistor between RXD and GND is 2.2 kOhm.
 
-Швидкість UART: `9600 baud`.
+UART speed: `9600 baud`.
 
-## Підключення HC-SR04
+## HC-SR04 connection
 
 | HC-SR04 | Arduino Uno |
 |---|---|
@@ -99,141 +100,144 @@ Arduino GND ------------------+
 | TRIG | D6 |
 | ECHO | D7 |
 
-Датчик має дивитися прямо вперед. Нахил до підлоги спричиняє хибні спрацювання, а надто високий кут може не бачити низькі перешкоди.
+The sensor should point straight ahead. A downward angle can produce false reflections from the floor, while an excessive upward angle can miss low obstacles.
 
-## Живлення
+## Power
 
-Поточна схема:
+Current arrangement:
 
-- Arduino Uno, BLE і датчики живляться від 2 x AA через MT3608, налаштований на 5.0 V.
-- Вихід MT3608 підключений до 5V і GND на Prototype Shield.
-- Motor Shield живиться від окремого блока 4 x AA по 1.5 V.
-- Жовтий VIN jumper на Motor Shield знятий.
-- Не підключати моторне живлення до Arduino 5V.
-- Не встановлювати VIN jumper, коли Arduino й мотори мають окремі джерела живлення.
+- Arduino Uno, BLE, and sensors are powered by two AA cells through an MT3608 boost converter adjusted to 5.0 V.
+- The MT3608 output is connected to the 5V and GND rails on the Prototype Shield.
+- The Motor Shield is powered separately by four 1.5 V AA cells.
+- The Motor Shield VIN/PWR jumper is removed.
+- Motor power must never be connected to the Arduino 5V rail.
+- Do not install the VIN/PWR jumper while the Arduino and motors use separate power supplies.
 
-Motor Shield уже має спільну логічну землю з Arduino через свої контакти, коли він встановлений поверх Uno. Дроти моторів підключаються лише до M1–M4; центральні GND у моторних клемах для моторів не використовуються.
+The stacked Motor Shield shares logic ground with the Arduino through its headers. Motor wires connect only to M1-M4; the center GND terminals in the motor output blocks are not used for the motors.
 
-Перед підключенням Arduino вихід MT3608 треба перевірити мультиметром і виставити приблизно 5.0 V. Під час живлення через MT3608 не слід одночасно подавати живлення через USB. Чотири моторні AA можуть просідати на старті всіх моторів, тому проводка, тримач і вимикач мають бути розраховані на відповідний струм.
+Before connecting the Arduino, verify the MT3608 polarity and adjust its output to approximately 5.0 V with a multimeter. Do not power the board from USB at the same time as the MT3608. The four-cell motor pack can sag when all motors start, so the battery holder, switch, and wiring must be rated for the required current.
 
-## Arduino-прошивка
+## Arduino firmware
 
-Залежності:
+Dependencies:
 
 - `Adafruit Motor Shield V2 Library`
 - `RoboLink`
-- стандартні `Wire` і `SoftwareSerial`
+- Standard Arduino `Wire` and `SoftwareSerial` libraries
 
-В Arduino IDE:
+Upload procedure:
 
-1. Відкрити `arduino/mecanum_robot/mecanum_robot.ino`.
-2. Вибрати плату `Arduino Uno`.
-3. Встановити залежності.
-4. Вибрати USB-порт Arduino.
-5. Закрити Serial Monitor перед завантаженням.
-6. Натиснути Upload.
+1. Open `arduino/mecanum_robot/mecanum_robot.ino` in Arduino IDE.
+2. Select `Arduino Uno` as the board.
+3. Install the required libraries.
+4. Select the Arduino USB port.
+5. Close Serial Monitor before uploading.
+6. Click **Upload**.
 
-Serial Monitor: `115200 baud`. Поточна прошивка друкує `sonar_cm`, `blocked` і `near_hits` двічі на секунду для калібрування HC-SR04.
+Serial Monitor speed: `115200 baud`.
 
-Вимірювання HC-SR04 проходять через rolling median із 7 останніх значень. Блокування починає працювати після накопичення щонайменше 5 валідних вимірів; це відсікає короткі стрибки від підлоги, краю шасі та паразитних відбиттів. У Serial Monitor `sonar_raw_cm` показує сире ехо, а `filtered_cm` — значення, яке реально використовує auto-stop і Android-застосунок.
+The HC-SR04 measurements pass through a rolling median of the seven most recent samples. Obstacle blocking starts only after at least five valid readings have been collected, reducing short spikes caused by the floor, chassis edges, and parasitic reflections. `sonar_raw_cm` is the raw echo measurement, while `filtered_cm` is the value used by auto-stop and sent to the Android application.
 
-Поточна калібровка враховує фон підлоги приблизно `44–50 cm` через невеликий нахил датчика вниз. Значення нижче `8 cm` відкидаються як паразитний близький echo; короткі серії `-1` не очищають median-вікно.
+The current calibration accounts for a floor reflection around `44-50 cm` caused by the sensor's slight downward angle. Values below `8 cm` are rejected as false near echoes, and short sequences of `-1` readings do not immediately clear the median window.
 
-Прошивка:
+The firmware:
 
-- приймає керування через RoboLink поверх BLE UART;
-- рахує швидкості чотирьох mecanum-моторів;
-- зупиняє мотори, якщо команди зникають більш ніж на 700 ms;
-- опитує HC-SR04 приблизно раз на 60 ms;
-- блокує рух уперед після трьох послідовних filtered-вимірів ближче 32 cm;
-- знімає блокування після трьох послідовних filtered-вимірів далі 40 cm;
-- передає `distance` і `blocked` у застосунок приблизно двічі на секунду.
+- receives control commands through RoboLink over BLE UART;
+- calculates the four mecanum motor speeds;
+- stops all motors if commands are missing for more than 700 ms;
+- polls the HC-SR04 approximately every 60 ms;
+- blocks forward movement after three consecutive filtered readings below 32 cm;
+- clears the block after three consecutive filtered readings above 40 cm;
+- sends `distance` and `blocked` telemetry to the application approximately twice per second;
+- allows ultrasonic auto-stop to be enabled or disabled from the application.
 
-Увага: ультразвуковий auto-stop ще не відкалібрований і за останнім тестом може не зупинити робота. Поки це не виправлено й не протестовано, HC-SR04 не можна вважати надійною системою безпеки.
+> [!WARNING]
+> The ultrasonic auto-stop is still experimental and is not a safety system. Keep direct access to motor power while testing it.
 
-## Протокол керування
+## Control protocol
 
-Android надсилає текстовий рядок із завершальним `\n`:
+The Android application sends a newline-terminated text command:
 
 ```text
 throttle:100,steer:0,rot_left:0,rot_right:0,speed:160,sonar:1
 ```
 
-Поля:
+Fields:
 
-| Поле | Значення |
+| Field | Meaning |
 |---|---|
-| `throttle` | `-100` назад, `0` стоп, `100` вперед |
-| `steer` | `-100` strafe left, `0` прямо, `100` strafe right |
-| `rot_left` | `1` для обертання ліворуч, інакше `0` |
-| `rot_right` | `1` для обертання праворуч, інакше `0` |
-| `speed` | обмеження PWM, зараз приблизно `90..230` |
-| `sonar` | `1` вмикає автоматичну зупинку перед перешкодою, `0` вимикає її |
+| `throttle` | `-100` reverse, `0` stop, `100` forward |
+| `steer` | `-100` strafe right, `0` straight, `100` strafe left for the current motor wiring |
+| `rot_left` | `1` to rotate left, otherwise `0` |
+| `rot_right` | `1` to rotate right, otherwise `0` |
+| `speed` | PWM limit, currently approximately `90..230` |
+| `sonar` | `1` enables ultrasonic auto-stop, `0` disables it |
 
-Кнопки Android працюють за принципом press-and-hold: робот рухається, поки кнопка затиснута, і отримує stop після відпускання. Multi-touch дозволяє затиснути вперед, коротко натиснути rotate, а після відпускання rotate продовжити рух уперед.
+Movement buttons use press-and-hold control: the robot moves while a button is held and receives a stop command after release. Multi-touch allows the user to hold forward, briefly press rotate, and continue moving forward after releasing rotate.
 
-## Android-застосунок
+## Android application
 
-Поточна версія: `1.5.2 (32)`.
+Current version: `1.5.2 (32)`.
 
-Основні функції:
+Main features:
 
-- BLE scan і підключення до HC-06/FFE1.
-- Примусовий `sensorLandscape`: застосунок завжди відкривається горизонтально.
-- Меню відкривається лише кнопкою, edge-swipe вимкнений.
-- Центральний Sonic-дисплей показує відстань і стан `CLEAR / BLOCKED`.
-- Кнопка `AUTO STOP ON/OFF` вмикає або вимикає реакцію на перешкоду; відстань відображається в обох режимах.
-- Landscape-контролер для великих пальців.
-- Рух уперед/назад, strafe left/right і rotate left/right.
-- Режими швидкості Slow, Normal і Turbo.
-- Stop-on-release і fail-safe при втраті команд.
-- Короткий click-haptic на керуванні, швидкості та кнопці меню.
-- Окремі екрани Devices і Logs у меню.
-- BLE-з'єднання зберігається при зміні орієнтації екрана.
+- BLE scan and connection to the HC-06-compatible FFE1 module.
+- Forced landscape orientation.
+- Menu opens only from the menu button; edge-swipe opening is disabled.
+- Central ultrasonic display showing distance and `CLEAR / BLOCKED` state.
+- `AUTO STOP ON/OFF` control while distance telemetry remains visible.
+- Thumb-oriented landscape controller.
+- Forward, reverse, strafe left/right, and rotate left/right controls.
+- Slow, Normal, and Turbo speed modes.
+- Stop-on-release and command timeout fail-safe.
+- Multi-touch command handling.
+- Haptic feedback for controls, speed selection, and the menu button.
+- Separate Devices and Logs screens.
+- BLE connection survives Android configuration changes.
 
-Вимоги:
+Requirements:
 
-- Android Studio з Android SDK.
-- JDK 11 або сумісний JDK, який використовує Android Studio.
-- Android 7.0+ (`minSdk 24`).
-- Bluetooth і дозволи Nearby devices/Location відповідно до версії Android.
+- Android Studio with the Android SDK.
+- JDK 11 or the compatible JDK bundled with Android Studio.
+- Android 7.0 or newer (`minSdk 24`).
+- Bluetooth and Nearby Devices/Location permissions as required by the Android version.
 
-Збірка debug APK:
+Build the debug APK:
 
 ```bash
 cd android
 ./gradlew :app:assembleDebug
 ```
 
-APK з'явиться тут:
+The APK is created at:
 
 ```text
 android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
-В Android Studio потрібно відкривати саме папку `android`. Файл `local.properties` не зберігається в репозиторії: Android Studio створить його автоматично з локальним шляхом до SDK.
+Open the `android` directory itself in Android Studio. `local.properties` is intentionally excluded from version control; Android Studio creates it with the local SDK path.
 
-## Поточний стан
+## Current status
 
-Працює:
+Working:
 
-- BLE-підключення Android до модуля.
-- Усі основні напрями руху mecanum-платформи.
-- Керування утриманням кнопок і multi-touch.
-- Три режими швидкості.
-- Rotate використовує вибраний режим швидкості Slow, Normal або Turbo.
-- Телеметрія HC-SR04 з відстанню та станом блокування у застосунку.
-- Перемикач AUTO STOP ON/OFF у контролері.
-- Виправлені напрямки Left/Right.
-- Примусовий landscape-режим без втрати BLE-з’єднання.
+- BLE connection and control.
+- Forward, reverse, strafe, and rotation.
+- Press-and-hold movement and multi-touch.
+- Slow, Normal, and Turbo modes.
+- Rotation using the currently selected speed mode.
+- HC-SR04 distance and block-state telemetry in the application.
+- Runtime `AUTO STOP ON/OFF` control.
+- Corrected Left/Right controls for the current motor and wheel arrangement.
+- Forced landscape mode without losing the BLE connection.
 
-Потребує наступної роботи:
+Planned improvements:
 
-- Фінальна механічна установка та калібрування HC-SR04 auto-stop.
-- Auto-reconnect BLE.
-- Калібрування швидкості окремих мотор-редукторів.
-- Автоматизовані тести та release-збірка Android.
+- Final mechanical positioning and calibration of the HC-SR04.
+- BLE auto-reconnect.
+- Individual motor speed calibration.
+- Automated tests and a signed Android release build.
 
-## Правило безпечного тесту
+## Safe first test
 
-Під час першого запуску підняти шасі так, щоб колеса не торкалися підлоги, перевірити напрям кожного мотора, а вже потім ставити робота на підлогу. Під час тесту HC-SR04 тримати руку біля живлення моторів: програмний auto-stop наразі експериментальний.
+For the first powered test, lift the chassis so the wheels cannot touch the floor. Verify every motor direction before placing the robot down. Keep immediate access to the motor power switch during all ultrasonic auto-stop tests.
