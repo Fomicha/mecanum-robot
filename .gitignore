@@ -1,0 +1,29 @@
+.DS_Store
+.idea/
+*.iml
+
+android/.gradle/
+android/.kotlin/
+android/build/
+android/app/build/
+android/local.properties
+
+arduino/**/*.bak
+
+# Local notes and credentials
+.obsidian/
+*.jks
+*.keystore
+
+# Packaged Android artifacts
+*.apk
+*.aab
+
+# Environment files and private keys
+.env
+.env.*
+secrets.properties
+google-services.json
+*.pem
+*.p12
+*.pfx
